@@ -105,10 +105,12 @@ config.ts
 
 ### 启动！
 
-<video width="320" height="240" controls>
-    <source src="./pic/demo.mp4" type="video/mp4">
-</video>
-> [!TIP]
+
+https://github.com/user-attachments/assets/a8d853a1-91cb-4e53-9e89-140a94940f5a
+
+
+
+> TIP
 >
 > 前后端分离：此 demo 前后端分离，通过 api 发送和接收请求
 >
