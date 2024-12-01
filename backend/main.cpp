@@ -65,7 +65,7 @@ MYSQL* database_init() {
         return NULL;
     }
 
-    if (mysql_real_connect(conn, "localhost", "root", "520Wjw..@0301", "wenjw_db", 0, NULL, 0) == NULL) {
+    if (mysql_real_connect(conn, "localhost", "root", "123456ahwei", "wenjw_db", 0, NULL, 0) == NULL) {
         fprintf(stderr, "mysql_real_connect() failed: %s\n", mysql_error(conn));
         mysql_close(conn);
         return NULL;
