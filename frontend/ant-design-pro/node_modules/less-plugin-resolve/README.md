@@ -1,3 +1,0 @@
-# less-plugin-resolve
-
-.

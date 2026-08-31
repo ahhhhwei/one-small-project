@@ -1,0 +1,54 @@
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor state
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Frontend dependencies and generated files
+**/node_modules/
+frontend/ant-design-pro/dist/
+frontend/ant-design-pro/src/.umi/
+frontend/ant-design-pro/types/cache/
+frontend/ant-design-pro/coverage/
+frontend/ant-design-pro/.eslintcache
+frontend/ant-design-pro/*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Backend build outputs
+backend/server
+backend/*.exe
+backend/*.dll
+backend/*.lib
+backend/*.o
+backend/*.obj
+
+# CMake build directories
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Database runtime data
+infra/mysql/*/data/
+infra/opengauss/*/data/
+
+# ShardingSphere distribution, runtime and downloaded archives
+infra/shardingsphere/proxy/
+infra/shardingsphere/*.tar.gz*
+
+# Runtime logs and temporary files
+*.log
+*.pid
+*.tmp
