@@ -11,10 +11,11 @@
 - C++17、cpp-httplib
 - ODB、JsonCpp、OpenSSL
 - MySQL、openGauss、ShardingSphere-Proxy
-- CMake
+- CMake、Docker Compose、Nginx
 
-前端开发服务器运行在 `8000` 端口，后端运行在 `8080` 端口，后端通过
-ShardingSphere-Proxy 的 `3307` 端口访问数据库。
+Docker 方式只对外开放 `8000` 端口，由 Nginx 提供前端页面并把 `/api` 请求转发给
+后端。手动开发时，前端、后端和 ShardingSphere-Proxy 分别使用 `8000`、`8080` 和
+`3307` 端口。
 
 ## 功能
 
@@ -55,24 +56,92 @@ ShardingSphere-Proxy 的 `3307` 端口访问数据库。
 
 ```text
 .
-├── CMakeLists.txt                 根目录 CMake 入口
+├── .devcontainer                 Codespaces 配置
+├── CMakeLists.txt                根目录 CMake 入口
+├── docker-compose.yml            Docker Compose 入口
 ├── backend
 │   ├── CMakeLists.txt
+│   ├── Dockerfile
 │   ├── include/app                后端头文件
 │   ├── src                        后端实现
 │   ├── migrations                MySQL 和 openGauss 迁移文件
 │   └── cmake                      ODB 生成代码处理脚本
-├── frontend/ant-design-pro        前端项目
-├── infra/shardingsphere           ShardingSphere 配置
+├── frontend/ant-design-pro        前端项目和 Nginx 配置
+├── infra
+│   ├── mysql                      MySQL 初始化脚本
+│   ├── opengauss                  openGauss 初始化脚本
+│   ├── seed                       测试数据导入镜像
+│   └── shardingsphere             ShardingSphere 配置和镜像
 └── tools
     ├── generate_large_data.py     测试数据生成脚本
     ├── smoke_test.sh              接口冒烟测试
     └── start_proxy.sh             代理启动脚本
 ```
 
+## Docker 启动
+
+这是最省事的运行方式，需要先安装 Docker Engine 和 Docker Compose v2。复制环境变量文件：
+
+```bash
+cp .env.example .env
+```
+
+打开 `.env`，至少修改 `MYSQL_ROOT_PASSWORD`、`OPENGAUSS_PASSWORD`、
+`SHARDINGSPHERE_PASSWORD` 和 `AUTH_SECRET`。`AUTH_SECRET` 可以这样生成：
+
+```bash
+openssl rand -hex 32
+```
+
+构建并启动全部服务：
+
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+第一次构建会下载 openGauss、ShardingSphere、ODB 和前端依赖，需要等几分钟。数据库建表后会
+自动导入 1000 名学生、78 门课程和对应的选课记录；再次启动时如果已经有学生数据，就不会重复
+导入。
+
+服务启动后访问 <http://localhost:8000/user/login>，也可以先检查接口：
+
+```bash
+curl http://localhost:8000/api/health
+API_BASE=http://localhost:8000 ./tools/smoke_test.sh
+```
+
+容器之间通过 Compose 网络通信，宿主机只开放前端的 `8000` 端口。常用命令：
+
+```bash
+docker compose logs -f backend
+docker compose logs -f shardingsphere
+docker compose stop
+docker compose start
+docker compose down
+```
+
+`docker compose down` 不会删除数据库卷。只有确定不再需要本地数据时，才使用
+`docker compose down -v` 重新初始化数据库。
+
+### 在 GitHub Codespaces 中运行
+
+仓库中的 `.devcontainer/devcontainer.json` 会准备 Docker 环境并转发 `8000` 端口。创建
+Codespace 后执行：
+
+```bash
+cp -n .env.example .env
+docker compose up -d --build
+curl http://localhost:8000/api/health
+```
+
+如果需要把演示地址发给别人，在 Codespaces 的 `PORTS` 面板中找到 `8000`，把端口可见性改成
+`Public`。演示结束后执行 `docker compose stop`，并停止 Codespace。
+
 ## 本地运行
 
-我使用的环境是 Ubuntu 20.04、GCC 9.4 和 Node.js 20。后端还需要安装下面这些依赖：
+下面是不用 Docker 时的运行方法。我使用的环境是 Ubuntu 20.04、GCC 9.4 和 Node.js 20。
+后端还需要安装这些依赖：
 
 - CMake 3.16 或更高版本
 - ODB 2.6、`libodb`、`libodb-mysql`
@@ -197,6 +266,12 @@ npm run start
 
 ```bash
 tail -f logs/backend-$(date -u +%F).jsonl
+```
+
+使用 Docker 时可以直接查看容器日志：
+
+```bash
+docker compose logs -f backend
 ```
 
 ## 检查和测试

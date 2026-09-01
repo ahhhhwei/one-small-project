@@ -1,0 +1,21 @@
+{
+  "name": "one-small-project",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "学生选课系统",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "cp -n .env.example .env || true",
+  "remoteUser": "vscode",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

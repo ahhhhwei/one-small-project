@@ -1,0 +1,15 @@
+mode:
+  type: Standalone
+  repository:
+    type: JDBC
+
+authority:
+  users:
+    - user: root@%
+      password: ${SHARDINGSPHERE_PASSWORD}
+  privilege:
+    type: ALL_PERMITTED
+
+props:
+  sql-show: false
+  proxy-frontend-database-protocol-type: MySQL

@@ -1,0 +1,123 @@
+name: one-small-project
+
+services:
+  mysql:
+    image: mysql:8.0.38
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-DockerMysql@123}
+      MYSQL_DATABASE: wenjw_db0
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./infra/mysql/init.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  opengauss:
+    image: opengauss/opengauss-server@sha256:d554be1b8b08165a8b19348f0ca236b5d61a4832ffadac0340ded973c34f38e4
+    privileged: true
+    environment:
+      GS_PASSWORD: ${OPENGAUSS_PASSWORD:-DockerGauss@123}
+      GS_NODENAME: course_selection_db1
+    volumes:
+      - opengauss-data:/var/lib/opengauss
+    shm_size: 1gb
+    healthcheck:
+      test: ["CMD-SHELL", "su - omm -c \"gsql -d postgres -At -c 'SELECT 1;'\" | grep -qx 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
+
+  opengauss-init:
+    image: opengauss/opengauss-server@sha256:d554be1b8b08165a8b19348f0ca236b5d61a4832ffadac0340ded973c34f38e4
+    environment:
+      OPENGAUSS_PASSWORD: ${OPENGAUSS_PASSWORD:-DockerGauss@123}
+    volumes:
+      - ./infra/opengauss/init.sql:/docker-init/init.sql:ro
+      - ./infra/opengauss/init.sh:/docker-init/init.sh:ro
+    entrypoint: ["/bin/bash", "/docker-init/init.sh"]
+    depends_on:
+      opengauss:
+        condition: service_healthy
+    restart: "no"
+
+  shardingsphere:
+    build:
+      context: ./infra/shardingsphere
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-DockerMysql@123}
+      OPENGAUSS_PASSWORD: ${OPENGAUSS_PASSWORD:-DockerGauss@123}
+      SHARDINGSPHERE_PASSWORD: ${SHARDINGSPHERE_PASSWORD:-DockerProxy@123}
+      PORT: 3307
+      JAVA_MEM_OPTS: -Xms256m -Xmx768m -Xmn128m
+    depends_on:
+      mysql:
+        condition: service_healthy
+      opengauss-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/3307'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  seed:
+    build:
+      context: .
+      dockerfile: infra/seed/Dockerfile
+    environment:
+      SHARDINGSPHERE_PASSWORD: ${SHARDINGSPHERE_PASSWORD:-DockerProxy@123}
+      SEED_DATA: ${SEED_DATA:-true}
+    depends_on:
+      shardingsphere:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DB_HOST: shardingsphere
+      DB_PORT: 3307
+      DB_NAME: wenjw_db
+      DB_USER: root
+      DB_PASSWORD: ${SHARDINGSPHERE_PASSWORD:-DockerProxy@123}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8080
+      AUTH_SECRET: ${AUTH_SECRET:-replace-with-at-least-32-random-characters}
+      AUTH_TOKEN_HOURS: ${AUTH_TOKEN_HOURS:-8}
+      LOG_DIR: /app/logs
+    volumes:
+      - backend-logs:/app/logs
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/ant-design-pro
+    ports:
+      - "${FRONTEND_PORT:-8000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  opengauss-data:
+  backend-logs:

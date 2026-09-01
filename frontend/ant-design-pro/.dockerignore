@@ -1,0 +1,7 @@
+node_modules
+dist
+src/.umi
+src/.umi-production
+.eslintcache
+*.tsbuildinfo
+npm-debug.log*

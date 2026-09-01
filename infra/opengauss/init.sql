@@ -1,0 +1,41 @@
+CREATE TABLE IF NOT EXISTS wenjw_stu1 (
+    sno INTEGER NOT NULL,
+    sname VARCHAR(100) NOT NULL,
+    sdept VARCHAR(100) NOT NULL,
+    stel VARCHAR(20) NOT NULL DEFAULT '',
+    sex VARCHAR(10) NOT NULL DEFAULT '',
+    sage INTEGER NOT NULL DEFAULT 0,
+    saddr VARCHAR(200) NOT NULL DEFAULT '',
+    spost VARCHAR(10) NOT NULL DEFAULT '',
+    PRIMARY KEY (sno)
+);
+
+CREATE TABLE IF NOT EXISTS wenjw_sc1 (
+    sno INTEGER NOT NULL,
+    cno INTEGER NOT NULL,
+    grade NUMERIC(4, 1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (sno, cno),
+    CONSTRAINT wenjw_sc1_grade_check CHECK (grade BETWEEN 0 AND 100)
+);
+
+CREATE TABLE IF NOT EXISTS wenjw_cou (
+    cno INTEGER NOT NULL,
+    cname VARCHAR(100) NOT NULL,
+    cdept VARCHAR(100) NOT NULL DEFAULT '',
+    ctea VARCHAR(100) NOT NULL DEFAULT '',
+    cdate VARCHAR(20) NOT NULL DEFAULT '',
+    cscore NUMERIC(4, 2) NOT NULL DEFAULT 0,
+    caddr VARCHAR(200) NOT NULL DEFAULT '',
+    PRIMARY KEY (cno)
+);
+
+CREATE TABLE IF NOT EXISTS wenjw_user (
+    username VARCHAR(50) NOT NULL,
+    password_hash VARCHAR(64) NOT NULL,
+    password_salt VARCHAR(64) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
+    student_id INTEGER NOT NULL DEFAULT 0,
+    teacher_name VARCHAR(100) NOT NULL DEFAULT '-',
+    PRIMARY KEY (username)
+);

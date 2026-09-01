@@ -1,0 +1,3 @@
+proxy
+*.tar.gz*
+*.log
