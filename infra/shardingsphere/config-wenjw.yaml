@@ -1,0 +1,65 @@
+databaseName: wenjw_db
+
+dataSources:
+  wenjw_db0:
+    url: jdbc:mysql://127.0.0.1:13306/wenjw_db0?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 20
+    minPoolSize: 1
+
+  wenjw_db1:
+    url: jdbc:opengauss://127.0.0.1:15432/wenjw_db1
+    username: gaussdb
+    password: Ahwei@123
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 20
+    minPoolSize: 1
+
+rules:
+  - !SHARDING
+    tables:
+      wenjw_stu:
+        actualDataNodes: wenjw_db0.wenjw_stu0,wenjw_db1.wenjw_stu1
+        tableStrategy:
+          standard:
+            shardingColumn: sno
+            shardingAlgorithmName: stu_table_inline
+
+      wenjw_sc:
+        actualDataNodes: wenjw_db0.wenjw_sc0,wenjw_db1.wenjw_sc1
+        tableStrategy:
+          standard:
+            shardingColumn: sno
+            shardingAlgorithmName: sc_table_inline
+
+    bindingTables:
+      - wenjw_stu,wenjw_sc
+
+    broadcastTables:
+      - wenjw_cou
+      - wenjw_user
+
+    defaultDatabaseStrategy:
+      standard:
+        shardingColumn: sno
+        shardingAlgorithmName: database_inline
+
+    shardingAlgorithms:
+      database_inline:
+        type: INLINE
+        props:
+          algorithm-expression: wenjw_db${sno % 2}
+      stu_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: wenjw_stu${sno % 2}
+      sc_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: wenjw_sc${sno % 2}

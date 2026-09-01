@@ -11,6 +11,7 @@
     "skipLibCheck": true,
     "experimentalDecorators": true,
     "strict": true,
+    "types": ["node", "react", "react-dom"],
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "paths": {

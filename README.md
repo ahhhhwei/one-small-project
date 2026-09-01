@@ -1,118 +1,252 @@
-# 分布式数据库课设demo
+# 学生选课管理系统
 
-周末不上班😊，闲着写了个demo📢
+这是一个前后端分离的学生选课项目，分为管理员、教师和学生三种账号。前端使用 React，
+后端使用 C++，数据通过 ShardingSphere-Proxy 分到 MySQL 和 openGauss。
 
-## 技术栈
+项目目前可以跑通登录、学生管理、课程管理、选课、退课和成绩录入这些基本流程。
 
-- 前端：React
+## 用到的技术
 
-  Antd Pro of React
+- React 18、TypeScript、Ant Design Pro
+- C++17、cpp-httplib
+- ODB、JsonCpp、OpenSSL
+- MySQL、openGauss、ShardingSphere-Proxy
+- CMake
 
-  Ant Design
+前端开发服务器运行在 `8000` 端口，后端运行在 `8080` 端口，后端通过
+ShardingSphere-Proxy 的 `3307` 端口访问数据库。
 
-- 后端：C++
+## 功能
 
-  httplib 网络库
+### 管理员
 
-  mysql c api 连接数据库
+- 查看、搜索、新增、修改和删除学生
+- 查看、新增、修改和删除课程
+- 管理学生的选课记录和成绩
+- 删除学生或课程时，同时清理对应的选课记录
 
-## 已完成功能
+### 教师
 
-### 数据库
+- 查看自己负责的课程
+- 查看课程中的学生名单
+- 录入和修改学生成绩
+- 不能修改其他教师课程的数据
 
-C语言连接 mysql，用了之前实验的数据库 sql 数据
+### 学生
 
-### 前端
+- 查看自己的个人信息
+- 查看已选课程和成绩
+- 查看当前可以选择的课程
+- 选课和退课
 
-前端完成了学生和课程页面的**查**功能
+权限不只是在前端控制，后端接口也会检查当前账号的身份。
 
-分别对应下面四个 api：
+## 测试账号
 
-![后端api](./pic/后端api.png)
+| 身份   | 用户名      | 密码          | 说明                     |
+| ------ | ----------- | ------------- | ------------------------ |
+| 管理员 | `admin`     | `Admin@123`   | 管理学生、课程和选课记录 |
+| 教师   | `teacher01` | `Teacher@123` | 绑定教师“蒋莉”           |
+| 学生   | `student01` | `Student@123` | 绑定学号 `20000001`      |
 
-从上到下依次为：
+这些账号只用于本地测试。
 
-1. 获取所有学生信息
+## 项目目录
 
-   ![students](./pic/students.png)
+```text
+.
+├── CMakeLists.txt                 根目录 CMake 入口
+├── backend
+│   ├── CMakeLists.txt
+│   ├── include/app                后端头文件
+│   ├── src                        后端实现
+│   ├── migrations                MySQL 和 openGauss 迁移文件
+│   └── cmake                      ODB 生成代码处理脚本
+├── frontend/ant-design-pro        前端项目
+├── infra/shardingsphere           ShardingSphere 配置
+└── tools
+    ├── generate_large_data.py     测试数据生成脚本
+    ├── smoke_test.sh              接口冒烟测试
+    └── start_proxy.sh             代理启动脚本
+```
 
-2. 获取所有课程信息
+## 本地运行
 
-   ![courses](./pic/courses.png)
+我使用的环境是 Ubuntu 20.04、GCC 9.4 和 Node.js 20。后端还需要安装下面这些依赖：
 
-3. 根据学号检索相关选课课程信息
+- CMake 3.16 或更高版本
+- ODB 2.6、`libodb`、`libodb-mysql`
+- JsonCpp
+- OpenSSL
+- pthread
 
-   ![studentsbyID](./pic/studentsbyID.png)
+### 1. 启动数据库和代理
 
-4. 根据课程号检索选课学生信息
+先确认 MySQL 和 openGauss 已经启动，再把项目中的配置复制到 ShardingSphere-Proxy：
 
-   ![coursesByID](./pic/coursesByID.png)
+```bash
+cp infra/shardingsphere/config-wenjw.yaml infra/shardingsphere/proxy/conf/config-wenjw.yaml
+cp infra/shardingsphere/server.yaml infra/shardingsphere/proxy/conf/server.yaml
 
-## 未完成功能
+./tools/start_proxy.sh
+```
 
-- shardingsphere 分库分表
+默认端口如下：
 
-  - 搭建
+| 服务                 |    端口 |
+| -------------------- | ------: |
+| ShardingSphere-Proxy |  `3307` |
+| MySQL                | `13306` |
+| openGauss            | `15432` |
 
-    [我同学的博客](https://blog.csdn.net/C137DAWN/article/details/134978190?csdn_share_tail=%7B%22type%22%3A%22blog%22%2C%22rType%22%3A%22article%22%2C%22rId%22%3A%22134978190%22%2C%22source%22%3A%22C137DAWN%22%7D)
+第一次运行时，需要分别创建两边的用户表：
 
-  - 连接
+```bash
+mysql -h127.0.0.1 -P13306 -uroot -p123456 wenjw_db0 \
+  < backend/migrations/mysql/001_create_user.sql
 
-    据官网说 shardingsphere proxy 是和语言无关的，而且他也支持 Mysql 协议，我想应该不用 Java 也能连上逻辑数据库吧
+docker exec -i one-small-project-opengauss-db1 sh -lc \
+  'su - omm -c "gsql -d wenjw_db1"' \
+  < backend/migrations/opengauss/001_create_user.sql
+```
 
-    ![shardingsphere-proxy](./pic/shardingsphere-proxy.png)
+迁移脚本可以重复执行。
 
-- 学生界面和课程界面的**增删改**功能
+### 2. 编译后端
 
-- user 表
+所有后端代码都从根目录统一编译：
 
-  选课系统大致应分为**管理员、老师、学生**三种角色，不同权限下渲染的界面不同
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j2
+```
 
-- 其他没想到的点
+CMake 会先调用 ODB 编译器生成数据库持久化代码，然后再编译后端程序。生成文件位于
+`build/backend/generated`，不需要手动修改。
 
-  todo
+### 3. 配置后端
 
-## 简易教程
+默认配置放在 [.env.example](.env.example)，可以复制一份再按本机环境修改：
 
-### 后端
+```bash
+cp .env.example .env
+```
 
-- 开发环境：VSCode
+程序读取的是环境变量。如果需要使用 `.env` 文件，在启动前执行：
 
-- 开发语言：C/C++
+```bash
+set -a
+source .env
+set +a
+```
 
-- 编译器：mingw
+常用配置：
 
-- 第三方库：
+| 变量               | 默认值         | 说明             |
+| ------------------ | -------------- | ---------------- |
+| `DB_HOST`          | `127.0.0.1`    | 数据库代理地址   |
+| `DB_PORT`          | `3307`         | 数据库代理端口   |
+| `DB_NAME`          | `wenjw_db`     | 逻辑数据库名     |
+| `DB_USER`          | `root`         | 数据库用户名     |
+| `DB_PASSWORD`      | `123456`       | 数据库密码       |
+| `APP_HOST`         | `0.0.0.0`      | 后端监听地址     |
+| `APP_PORT`         | `8080`         | 后端端口         |
+| `AUTH_SECRET`      | 开发环境默认值 | 登录令牌签名密钥 |
+| `AUTH_TOKEN_HOURS` | `8`            | 登录有效时间     |
+| `LOG_DIR`          | `logs`         | 日志目录         |
 
-  - 网络库：httplib
-  - mysql c api
+`AUTH_SECRET` 至少需要 32 个字符。部署时应换成自己的随机字符串，并保证每次启动使用
+同一个值，否则原来的登录令牌会失效。
 
-- 响应数据格式：json
+### 4. 启动后端
 
-  没有配置 json 库，为了配置环境简便，我直接手动构造 json
+```bash
+./build/backend/course_selection_server
+```
 
-### 前端
+启动成功后可以访问健康检查：
 
-前端主要参考[Ant Design Pro入门教程](https://www.cnblogs.com/7tiny/p/13444963.html)
+```bash
+curl http://127.0.0.1:8080/api/health
+```
 
-我修改了 Page 页面
+### 5. 启动前端
 
-![page](./pic/page.png)
+另开一个终端：
 
-config.ts
+```bash
+cd frontend/ant-design-pro
+npm install
+npm run start
+```
 
-![config.ts](./pic/config.ts.png)
+浏览器访问 <http://localhost:8000/user/login>。开发环境中的 `/api` 请求会转发到
+`http://localhost:8080`。
 
-### 启动！
+## 日志
 
+后端日志会同时输出到终端和 `logs/backend-YYYY-MM-DD.jsonl`。每行是一条 JSON，主要记录：
 
-https://github.com/user-attachments/assets/a8d853a1-91cb-4e53-9e89-140a94940f5a
+- 请求方法、路径、状态码和响应大小
+- 登录成功、登录失败和令牌校验失败
+- 权限不足
+- 数据库异常和程序异常
+- 服务启动和端口占用
 
+日志里不会写入密码、登录令牌和数据库密码。
 
+```bash
+tail -f logs/backend-$(date -u +%F).jsonl
+```
 
-> TIP
->
-> 前后端分离：此 demo 前后端分离，通过 api 发送和接收请求
->
-> 其他方案：C++ 并不适合写 web 项目，而且我后端的代码全部放在了一个文件里，非常不便于管理，**更合适的有** JAVA SSM 或 python 的 flask 等
+## 检查和测试
 
+后端正在运行时，可以执行接口冒烟测试：
+
+```bash
+./tools/smoke_test.sh
+```
+
+脚本会测试三类账号登录、管理员增删改查、越权访问、教师录入成绩，以及学生选课和退课。
+测试过程中创建的数据会在结束时删除。
+
+前端检查：
+
+```bash
+cd frontend/ant-design-pro
+npm run tsc
+npm run lint:js
+npm run build
+```
+
+## 接口
+
+| 方法             | 路径                                 | 说明                 |
+| ---------------- | ------------------------------------ | -------------------- |
+| `POST`           | `/api/auth/login`                    | 登录                 |
+| `GET`            | `/api/auth/me`                       | 获取当前账号         |
+| `POST`           | `/api/auth/logout`                   | 退出登录             |
+| `GET`            | `/api/health`                        | 健康检查             |
+| `GET/POST`       | `/api/students`                      | 查询或新增学生       |
+| `GET/PUT/DELETE` | `/api/students/:sno`                 | 查询、修改或删除学生 |
+| `GET/POST`       | `/api/courses`                       | 查询或新增课程       |
+| `PUT/DELETE`     | `/api/courses/:cno`                  | 修改或删除课程       |
+| `GET`            | `/api/course_students/:cno`          | 查询课程中的学生     |
+| `GET`            | `/api/student_courses/:sno`          | 查询学生的课程       |
+| `POST`           | `/api/enrollments`                   | 新增选课记录         |
+| `PUT/DELETE`     | `/api/enrollments/:sno/:cno`         | 修改或删除选课记录   |
+| `GET`            | `/api/teacher/courses`               | 教师的课程           |
+| `GET`            | `/api/teacher/courses/:cno/students` | 教师查看课程名单     |
+| `PUT`            | `/api/teacher/enrollments/:sno/:cno` | 教师修改成绩         |
+| `GET`            | `/api/student/profile`               | 学生个人信息         |
+| `GET`            | `/api/student/courses`               | 学生已选课程         |
+| `GET`            | `/api/student/available-courses`     | 学生可选课程         |
+| `POST/DELETE`    | `/api/student/enrollments/:cno`      | 学生选课或退课       |
+
+登录以外的接口需要在请求头中携带令牌：
+
+```text
+Authorization: Bearer <token>
+```
+
+请求和响应使用 JSON。接口出错时会返回对应的 HTTP 状态码和错误信息。

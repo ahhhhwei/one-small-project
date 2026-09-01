@@ -13,6 +13,7 @@ Thumbs.db
 **/node_modules/
 frontend/ant-design-pro/dist/
 frontend/ant-design-pro/src/.umi/
+frontend/ant-design-pro/src/.umi-production/
 frontend/ant-design-pro/types/cache/
 frontend/ant-design-pro/coverage/
 frontend/ant-design-pro/.eslintcache
@@ -49,6 +50,7 @@ infra/shardingsphere/proxy/
 infra/shardingsphere/*.tar.gz*
 
 # Runtime logs and temporary files
+logs/
 *.log
 *.pid
 *.tmp

@@ -1,9 +1,13 @@
 /**
  * @see https://umijs.org/docs/max/access#access
  * */
-export default function access(initialState: { currentUser?: API.CurrentUser } | undefined) {
+import type { AuthUser } from '@/services/academic';
+
+export default function access(initialState: { currentUser?: AuthUser } | undefined) {
   const { currentUser } = initialState ?? {};
   return {
-    canAdmin: currentUser && currentUser.access === 'admin',
+    canAdmin: currentUser?.role === 'admin',
+    canTeacher: currentUser?.role === 'teacher',
+    canStudent: currentUser?.role === 'student',
   };
 }

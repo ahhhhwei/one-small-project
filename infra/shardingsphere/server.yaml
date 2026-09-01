@@ -1,0 +1,15 @@
+mode:
+  type: Standalone
+  repository:
+    type: JDBC
+
+authority:
+  users:
+    - user: root@%
+      password: 123456
+  privilege:
+    type: ALL_PERMITTED
+
+props:
+  sql-show: true
+  proxy-frontend-database-protocol-type: MySQL
